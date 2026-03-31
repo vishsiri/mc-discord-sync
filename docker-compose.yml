@@ -1,0 +1,55 @@
+services:
+# ---------------------------------------------------------------------------
+  # NestJS Backend
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # ลบ target: production ออกไปแล้ว
+    container_name: mc-discord-sync
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "127.0.0.1:3002:3002"   # Bind to localhost only — put Nginx/Caddy in front
+
+    networks:
+      - internal
+      - npm_network
+
+    depends_on:
+      flaresolverr:
+        condition: service_healthy
+
+    # --- Security hardening ---
+    security_opt:
+      - no-new-privileges:true  # Prevent privilege escalation
+    cap_drop:
+      - ALL                     # Drop ALL Linux capabilities
+    # read_only: true           <-- คอมเมนต์ทิ้งไว้ก่อน เพื่อให้ pnpm start:prod ทำงานได้ชัวร์ๆ
+    tmpfs:
+      - /tmp:mode=1777,size=64m # Writable /tmp for runtime temp files
+
+    # --- Resource limits ---
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  internal:
+    driver: bridge
+    internal: false             # Set to true if you add a separate public-facing proxy service
+  npm_network:
+    external: true
+    name: nginx-manager_default
