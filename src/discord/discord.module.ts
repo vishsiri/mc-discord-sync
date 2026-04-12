@@ -5,6 +5,7 @@ import { IntentsBitField } from 'discord.js';
 import { SyncModule } from '../sync/sync.module';
 import { SetupSyncCommand } from './commands/setup-sync.command';
 import { WhoisCommand } from './commands/whois.command';
+import { DiscordRankSyncService } from './discord-rank-sync.service';
 import { MemberBoostEvent } from './events/member-boost.event';
 import { MemberLeaveEvent } from './events/member-leave.event';
 
@@ -25,6 +26,13 @@ import { MemberLeaveEvent } from './events/member-leave.event';
     }),
     SyncModule,
   ],
-  providers: [SetupSyncCommand, WhoisCommand, MemberLeaveEvent, MemberBoostEvent],
+  providers: [
+    SetupSyncCommand,
+    WhoisCommand,
+    MemberLeaveEvent,
+    MemberBoostEvent,
+    DiscordRankSyncService,
+  ],
+  exports: [DiscordRankSyncService],
 })
 export class DiscordModule {}

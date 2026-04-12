@@ -20,10 +20,11 @@ export { DRIZZLE };
           waitForConnections: true,
           connectionLimit: 10,
           maxIdle: 10,
-          idleTimeout: 60000,
+          idleTimeout: 30000,
           queueLimit: 0,
           enableKeepAlive: true,
-          keepAliveInitialDelay: 0,
+          keepAliveInitialDelay: 10000,
+          connectTimeout: 10000,
         });
 
         return drizzle(pool, { schema, mode: 'default' });

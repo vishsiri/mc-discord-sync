@@ -66,11 +66,52 @@ export class RedisService implements OnModuleInit {
 
     await this.publisher.publish(
       channel,
-      JSON.stringify({ type: payload.boosted ? 'boost_start' : 'boost_end', ...payload }),
+      JSON.stringify({
+        type: payload.boosted ? 'boost_start' : 'boost_end',
+        ...payload,
+      }),
     );
 
     this.logger.log(
       `Published ${payload.boosted ? 'boost_start' : 'boost_end'} for ${payload.minecraftName} to ${channel}`,
+    );
+  }
+
+  async publishRankSync(payload: {
+    minecraftUuid: string;
+    minecraftName: string | null;
+    discordId: string | null;
+    selectedRanks: {
+      key: string;
+      series: string;
+      weight: number;
+      minecraftGroup: string;
+      discordRoleId: string | null;
+    }[];
+    selectedRank: {
+      key: string;
+      series: string;
+      weight: number;
+      minecraftGroup: string;
+      discordRoleId: string | null;
+    } | null;
+    minecraftGroupToAdd: string | null;
+    minecraftGroupsToAdd: string[];
+    minecraftGroupsToRemove: string[];
+    sourceGroups: string[];
+  }) {
+    const channel = this.config.get<string>(
+      'REDIS_RANK_SYNC_CHANNEL',
+      'minedream:sync:rank',
+    );
+
+    await this.publisher.publish(
+      channel,
+      JSON.stringify({ type: 'rank_sync', ...payload }),
+    );
+
+    this.logger.log(
+      `Published rank sync for ${payload.minecraftName ?? payload.minecraftUuid} to ${channel}`,
     );
   }
 }

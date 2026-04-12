@@ -49,6 +49,149 @@ Published payloads to `REDIS_BOOST_CHANNEL`:
 
 `type` will be `boost_start` or `boost_end`.
 
+## Rank Sync Between Minecraft And Discord
+
+You can sync multiple Minecraft groups to Discord roles and keep only the highest-weight rank.
+
+Environment variables:
+
+- `ENABLE_ROLE_SYNC=true` enables or disables Discord rank role updates.
+- `SYNC_ROLE_MAPPINGS_FILE=rolemaps.yml` path to YAML role mapping file. This is the preferred option.
+- `SYNC_ROLE_MAPPINGS=` JSON array fallback for rank mapping.
+- `REDIS_RANK_SYNC_CHANNEL=minedream:sync:rank` Redis channel for rank sync events.
+
+Example `rolemaps.yml`:
+
+```yml
+roles:
+  - key: vip
+    series: default
+    weight: 10
+    minecraftGroup: vip
+    discordRoleId: '123456789012345678'
+
+  - key: diamond
+    series: default
+    weight: 20
+    minecraftGroup: diamond
+    discordRoleId: '223456789012345678'
+
+  - key: platinum
+    series: default
+    weight: 30
+    minecraftGroup: platinum
+    discordRoleId: '323456789012345678'
+
+  - key: dreamplus
+    series: special
+    weight: 100
+    minecraftGroup: dreamplus
+    discordRoleId: '423456789012345678'
+```
+
+`minecraftGroups` is optional. Add it only if multiple LuckPerms group names should map to the same rank.
+`series` is optional too. If omitted, it defaults to `default`. Weight only competes within the same series.
+
+You can also still use `SYNC_ROLE_MAPPINGS` in `.env` if you want a single-file setup:
+
+```json
+[
+  {
+    "key": "vip",
+    "series": "default",
+    "weight": 10,
+    "minecraftGroup": "vip",
+    "discordRoleId": "123456789012345678"
+  },
+  {
+    "key": "diamond",
+    "series": "default",
+    "weight": 20,
+    "minecraftGroup": "diamond",
+    "discordRoleId": "223456789012345678"
+  },
+  {
+    "key": "platinum",
+    "series": "default",
+    "weight": 30,
+    "minecraftGroup": "platinum",
+    "discordRoleId": "323456789012345678"
+  },
+  {
+    "key": "dreamplus",
+    "series": "special",
+    "weight": 100,
+    "minecraftGroup": "dreamplus",
+    "discordRoleId": "423456789012345678"
+  }
+]
+```
+
+Example behavior:
+
+- `vip`, `diamond`, `platinum` are all in `default`, so only the highest one stays.
+- `dreamplus` is in `special`, so it can stay together with `diamond`.
+- If `ENABLE_ROLE_SYNC=false`, the API still resolves ranks and publishes Redis payloads, but it will not add or remove Discord roles.
+
+How it works:
+
+- Minecraft plugin sends the player's current groups to `POST /api/sync/rank`.
+- API selects the highest `weight` from `SYNC_ROLE_MAPPINGS`.
+- Discord roles from lower ranks are removed automatically.
+- The API responds with `minecraftGroupToAdd` and `minecraftGroupsToRemove` so the plugin can remove old ranks and keep only the highest one in Minecraft too.
+- A Redis event is published to `REDIS_RANK_SYNC_CHANNEL`.
+
+Example request:
+
+```http
+POST /api/sync/rank
+x-secret-key: your_secret_key_here
+content-type: application/json
+
+{
+  "minecraftUuid": "00000000-0000-0000-0009-01fd1be232f4",
+  "minecraftName": "KhunLeon",
+  "groups": ["vip", "diamond"]
+}
+```
+
+Example response:
+
+```json
+{
+  "isSynced": true,
+  "discordApplied": true,
+  "effectiveRank": {
+    "key": "diamond",
+    "weight": 20,
+    "minecraftGroup": "diamond",
+    "discordRoleId": "223456789012345678"
+  },
+  "minecraftGroupToAdd": "diamond",
+  "minecraftGroupsToRemove": ["vip"]
+}
+```
+
+Example Redis payload:
+
+```json
+{
+  "type": "rank_sync",
+  "minecraftUuid": "00000000-0000-0000-0009-01fd1be232f4",
+  "minecraftName": "KhunLeon",
+  "discordId": "123456789012345678",
+  "selectedRank": {
+    "key": "diamond",
+    "weight": 20,
+    "minecraftGroup": "diamond",
+    "discordRoleId": "223456789012345678"
+  },
+  "minecraftGroupToAdd": "diamond",
+  "minecraftGroupsToRemove": ["vip"],
+  "sourceGroups": ["vip", "diamond"]
+}
+```
+
 ## Linux Server tmux Run Templates
 
 Run Windows `.exe` on Linux with Wine + tmux:

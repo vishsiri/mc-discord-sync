@@ -1,0 +1,24 @@
+roles:
+  - key: vip
+    series: default
+    weight: 10
+    minecraftGroup: vip
+    discordRoleId: "123456789012345678"
+
+  - key: diamond
+    series: default
+    weight: 20
+    minecraftGroup: diamond
+    discordRoleId: "223456789012345678"
+
+  - key: platinum
+    series: default
+    weight: 30
+    minecraftGroup: platinum
+    discordRoleId: "323456789012345678"
+
+  - key: dreamplus
+    series: special
+    weight: 100
+    minecraftGroup: dreamplus
+    discordRoleId: "423456789012345678"
