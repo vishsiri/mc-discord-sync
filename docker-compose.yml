@@ -20,10 +20,6 @@ services:
       - internal
       - npm_network
 
-    depends_on:
-      flaresolverr:
-        condition: service_healthy
-
     # --- Security hardening ---
     security_opt:
       - no-new-privileges:true  # Prevent privilege escalation
