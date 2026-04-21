@@ -19,6 +19,9 @@ export class RedisService implements OnModuleInit {
     this.publisher.on('error', (err) =>
       this.logger.error('Redis publisher error', err),
     );
+    this.logger.log(
+      `Redis channels: sync=${this.getSyncSuccessChannel()}, unsync=${this.getUnsyncChannel()}, boost=${this.getBoostChannel()}, rank=${this.getRankSyncChannel()}`,
+    );
   }
 
   async publishSyncSuccess(payload: {
@@ -31,10 +34,7 @@ export class RedisService implements OnModuleInit {
     discordAvatarUrl?: string | null;
     discordProfileUrl?: string | null;
   }) {
-    const channel = this.config.get<string>(
-      'REDIS_CHANNEL',
-      'minedream:sync:success',
-    );
+    const channel = this.getSyncSuccessChannel();
     await this.publisher.publish(channel, JSON.stringify(payload));
     this.logger.log(
       `Published sync success for ${payload.minecraftName} to ${channel}`,
@@ -45,10 +45,7 @@ export class RedisService implements OnModuleInit {
     minecraftUuid: string;
     minecraftName: string;
   }) {
-    const channel = this.config.get<string>(
-      'REDIS_CHANNEL',
-      'minedream:sync:success',
-    );
+    const channel = this.getUnsyncChannel();
     await this.publisher.publish(
       channel,
       JSON.stringify({ type: 'unsync', ...payload }),
@@ -64,10 +61,7 @@ export class RedisService implements OnModuleInit {
     discordId: string;
     boosted: boolean;
   }) {
-    const channel = this.config.get<string>(
-      'REDIS_BOOST_CHANNEL',
-      'minedream:sync:boost',
-    );
+    const channel = this.getBoostChannel();
 
     await this.publisher.publish(
       channel,
@@ -105,10 +99,7 @@ export class RedisService implements OnModuleInit {
     minecraftGroupsToRemove: string[];
     sourceGroups: string[];
   }) {
-    const channel = this.config.get<string>(
-      'REDIS_RANK_SYNC_CHANNEL',
-      'minedream:sync:rank',
-    );
+    const channel = this.getRankSyncChannel();
 
     await this.publisher.publish(
       channel,
@@ -118,5 +109,43 @@ export class RedisService implements OnModuleInit {
     this.logger.log(
       `Published rank sync for ${payload.minecraftName ?? payload.minecraftUuid} to ${channel}`,
     );
+  }
+
+  private getSyncSuccessChannel(): string {
+    return this.firstConfigValue(
+      ['REDIS_SYNC_SUCCESS_CHANNEL', 'REDIS_CHANNEL'],
+      'minedream:sync:success',
+    );
+  }
+
+  private getUnsyncChannel(): string {
+    return this.firstConfigValue(
+      ['REDIS_UNSYNC_CHANNEL', 'REDIS_SYNC_SUCCESS_CHANNEL', 'REDIS_CHANNEL'],
+      'minedream:sync:success',
+    );
+  }
+
+  private getBoostChannel(): string {
+    return this.firstConfigValue(
+      ['REDIS_BOOST_CHANNEL'],
+      'minedream:sync:boost',
+    );
+  }
+
+  private getRankSyncChannel(): string {
+    return this.firstConfigValue(
+      ['REDIS_RANK_SYNC_CHANNEL'],
+      'minedream:sync:rank',
+    );
+  }
+
+  private firstConfigValue(keys: string[], fallback: string): string {
+    for (const key of keys) {
+      const value = this.config.get<string>(key);
+      if (value && value.trim()) {
+        return value.trim();
+      }
+    }
+    return fallback;
   }
 }

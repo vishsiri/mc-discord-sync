@@ -35,6 +35,14 @@ Environment variables:
 - `DISCORD_BOOST_REWARD_ROLE_ID=` optional role to add/remove when boost starts/stops.
 - `REDIS_BOOST_CHANNEL=minedream:sync:boost` Redis channel for boost events.
 
+Redis channel configuration:
+
+- `REDIS_SYNC_SUCCESS_CHANNEL=minedream:sync:success` publishes successful account sync events.
+- `REDIS_UNSYNC_CHANNEL=minedream:sync:success` publishes unsync events. Keep this the same as the sync success channel if your plugin subscribes to one shared sync channel.
+- `REDIS_BOOST_CHANNEL=minedream:sync:boost` publishes boost start/end events.
+- `REDIS_RANK_SYNC_CHANNEL=minedream:sync:rank` publishes Minecraft rank sync events.
+- `REDIS_CHANNEL` is still supported as a legacy alias for `REDIS_SYNC_SUCCESS_CHANNEL`.
+
 Published payloads to `REDIS_BOOST_CHANNEL`:
 
 ```json
