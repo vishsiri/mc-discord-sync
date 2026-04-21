@@ -9,6 +9,7 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  User,
 } from 'discord.js';
 import type { ButtonContext, ModalContext, SlashCommandContext } from 'necord';
 import { Button, Context, Modal, SlashCommand } from 'necord';
@@ -99,6 +100,7 @@ export class SetupSyncCommand {
         minecraftUuid: result.minecraftUuid,
         minecraftName: result.minecraftName,
         discordId: result.discordId,
+        ...this.createDiscordProfilePayload(interaction.user, member),
       });
 
       if (member && this.isBoostRewardEnabled()) {
@@ -163,6 +165,22 @@ export class SetupSyncCommand {
     } catch (err) {
       this.logger.error('Failed to apply Discord actions', err);
     }
+  }
+
+  private createDiscordProfilePayload(
+    user: User,
+    member?: GuildMember,
+  ) {
+    const discordDisplayName =
+      user.globalName ?? member?.displayName ?? user.username;
+
+    return {
+      discordName: discordDisplayName,
+      discordUsername: user.username,
+      discordDisplayName,
+      discordAvatarUrl: user.displayAvatarURL({ size: 256 }),
+      discordProfileUrl: `https://discord.com/users/${user.id}`,
+    };
   }
 
   private isBoostRewardEnabled(): boolean {

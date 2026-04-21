@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
+import { Client, User } from 'discord.js';
 import { DiscordRankSyncService } from '../discord/discord-rank-sync.service';
 import { RedisService } from '../redis/redis.service';
 import { BulkUpdateRankSyncDto } from './dto/bulk-update-rank-sync.dto';
@@ -47,10 +48,16 @@ export class SyncController {
   ) {
     this.validateSecretKey(secretKey);
     const record = await this.syncService.findByMinecraftUuid(uuid);
+    const discordProfile =
+      record?.isSynced && record.discordId
+        ? await this.resolveDiscordProfile(record.discordId)
+        : this.emptyDiscordProfile(null);
+
     return {
       isSynced: record?.isSynced ?? false,
       minecraftName: record?.minecraftName ?? null,
       discordId: record?.discordId ?? null,
+      ...discordProfile,
     };
   }
 
@@ -105,6 +112,62 @@ export class SyncController {
       this.logger.warn('Discord rank sync service is not available');
       return null;
     }
+  }
+
+  private getDiscordClient(): Client | null {
+    try {
+      return this.moduleRef.get(Client, { strict: false });
+    } catch {
+      return null;
+    }
+  }
+
+  private async resolveDiscordProfile(discordId: string) {
+    const client = this.getDiscordClient();
+    if (!client) {
+      return this.emptyDiscordProfile(discordId);
+    }
+
+    const user = await client.users.fetch(discordId).catch((error) => {
+      this.logger.warn(
+        `Cannot fetch Discord profile ${discordId}: ${this.getErrorMessage(error)}`,
+      );
+      return null;
+    });
+
+    if (!user) {
+      return this.emptyDiscordProfile(discordId);
+    }
+
+    return this.createDiscordProfile(user);
+  }
+
+  private createDiscordProfile(user: User) {
+    const discordDisplayName = user.globalName ?? user.username;
+
+    return {
+      discordName: discordDisplayName,
+      discordUsername: user.username,
+      discordDisplayName,
+      discordAvatarUrl: user.displayAvatarURL({ size: 256 }),
+      discordProfileUrl: `https://discord.com/users/${user.id}`,
+    };
+  }
+
+  private emptyDiscordProfile(discordId: string | null) {
+    return {
+      discordName: null,
+      discordUsername: null,
+      discordDisplayName: null,
+      discordAvatarUrl: null,
+      discordProfileUrl: discordId
+        ? `https://discord.com/users/${discordId}`
+        : null,
+    };
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 
   private async processRankSync(dto: UpdateRankSyncDto) {

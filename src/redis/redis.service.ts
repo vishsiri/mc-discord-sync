@@ -25,6 +25,11 @@ export class RedisService implements OnModuleInit {
     minecraftUuid: string;
     minecraftName: string;
     discordId: string;
+    discordName?: string | null;
+    discordUsername?: string | null;
+    discordDisplayName?: string | null;
+    discordAvatarUrl?: string | null;
+    discordProfileUrl?: string | null;
   }) {
     const channel = this.config.get<string>(
       'REDIS_CHANNEL',
